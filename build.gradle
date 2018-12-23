@@ -1,0 +1,79 @@
+configurations {
+    deployerJars
+}
+
+buildscript {
+    ext {
+        confluentVersion = '4.1.0'
+        avroVersion = '1.8.2'
+        kafkaVersion = '1.1.0'
+        gradleReleasePluginVersion = '2.6.0'
+    }
+    repositories {
+        maven { url 'https://plugins.gradle.org/m2/' }
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("net.researchgate:gradle-release:${gradleReleasePluginVersion}")
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'net.researchgate.release'
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+group = 'com.corelogic.idap.pipeline'
+description = 'kafka-test-suite'
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven { url "https://repo.corelogic.net/nexus/content/groups/m2/" }
+    maven { url "http://packages.confluent.io/maven/" }
+    maven { url "https://repo.corelogic.net/nexus/content/repositories/idap-snapshot/" }
+}
+
+dependencies {
+
+    compile ("io.confluent:kafka-avro-serializer:${confluentVersion}")
+    compile ("io.confluent:kafka-schema-registry-client:${confluentVersion}")
+    compile ("io.confluent:kafka-schema-registry:${confluentVersion}")
+    compile ("org.apache.kafka:kafka-clients:${kafkaVersion}")
+    compile ("org.apache.kafka:kafka-clients:${kafkaVersion}:test")
+    compile ("org.apache.avro:avro:${avroVersion}")
+    compile ('org.apache.curator:curator-test:2.9.0')
+    compile ("org.apache.kafka:kafka_2.11:${kafkaVersion}")
+    compile ("org.apache.kafka:kafka_2.11:${kafkaVersion}:test")
+    compile ("io.confluent:kafka-schema-registry:${confluentVersion}:tests")
+    compile ('junit:junit:4.12')
+    compile ('org.glassfish.jersey.core:jersey-common:2.26')
+    compile ('org.glassfish.jersey.core:jersey-server:2.26')
+    compile ('org.glassfish.jersey.containers:jersey-container-servlet:2.26')
+    compile ('org.glassfish.jersey.inject:jersey-hk2:2.26')
+    compile ('org.glassfish.jersey.bundles.repackaged:jersey-guava:2.6')
+
+    deployerJars('org.springframework.build.aws:org.springframework.build.aws.maven:3.0.0.RELEASE')
+}
+
+task uploadArchivesFromLocal(type: Upload) {
+    configuration = project.configurations.archives
+
+    repositories {
+        mavenDeployer {
+            configuration = configurations.deployerJars
+
+            snapshotRepository(url: "https://repo.corelogic.net/nexus/content/repositories/idap-snapshot/") {
+                authentication(userName: "idap_pipeline", password: "idap_pipeline")
+            }
+            pom.name = project.description
+            pom.groupId = project.group
+            pom.version = project.version
+        }
+    }
+}
